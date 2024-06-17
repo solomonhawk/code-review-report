@@ -1,0 +1,62 @@
+name: Code Review Report
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      # Change the target environment
+      #
+      # If the workflow initiator selects `main`, then the report will be
+      # sent to the main slack channel (#dev-campfire). Otherwise it will be
+      # send to the test channel (#code-review-report-test).
+      environment:
+        type: environment
+        description: "Choose target environment"
+
+  schedule:
+    # https://crontab.guru/#0_16_*_*_5 "Every Friday at 10:55AM EST"
+    # GitHub scheduled actions are not guaranteed to run on this exact
+    # schedule, and the beginning of the hour is the most busy time.
+    - cron: "55 15 * * 5"
+
+jobs:
+  report-activity:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Collect code review activity
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: ./bin/code-review
+
+      - name: Debug slack blocks
+        run: echo "${{ steps.collect.outputs.blocks }}"
+
+      - name: Send message to Slack API
+        uses: archive/github-actions-slack@v2.6.0
+        id: notify
+        if: "${{ steps.collect.outputs.blocks != '' }}"
+        with:
+          slack-bot-user-oauth-access-token:
+            ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          slack-channel: ${{ secrets.SLACK_NOTIFICATION_CHANNEL_ID }}
+          slack-blocks: "${{ steps.collect.outputs.blocks }}"
+
+      - name: Print Slack Message Result
+        if: always()
+        run: echo "${{ steps.notify.outputs.slack-result }}"

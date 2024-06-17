@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+npx tsc && TZ=Etc/UTC npx tsx ./src/cli/index.ts
+
+# ensure the script exits with the same exit code as the node process
+exit $?
