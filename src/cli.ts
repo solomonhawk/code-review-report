@@ -1,11 +1,12 @@
-import { Command } from "@effect/cli";
-import { NodeRuntime } from "@effect/platform-node";
-import { Effect } from "effect";
+import * as Command from "@effect/cli/Command";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import * as Effect from "effect/Effect";
 import { generate } from "~/cli/subcommands/generate/command";
 import { publish } from "~/cli/subcommands/publish/command";
-import { MainLive } from "~/layers";
+import * as IO from "~/lib/io";
+import { MainLive } from "./layers";
 
-const main = Command.make("code-review-report", {}, () => {
+const main = Command.make("cr-report", {}, () => {
   return Effect.fail("A subcommand is required.");
 });
 
@@ -18,7 +19,8 @@ const cli = Command.run(command, {
 
 NodeRuntime.runMain(
   cli(process.argv).pipe(
-    Effect.tapError(Effect.logError),
+    IO.tapError,
+    Effect.provide(NodeContext.layer),
     Effect.provide(MainLive),
   ),
   {

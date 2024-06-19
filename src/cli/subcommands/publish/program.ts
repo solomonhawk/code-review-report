@@ -1,6 +1,10 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
+import * as Data from "effect/Data";
+
+class TestError extends Data.TaggedError("TestError")<{ message: string }> {}
 
 export const program = Effect.gen(function* () {
+  yield* new TestError({ message: "test error" });
   yield* Effect.log("log");
   yield* Effect.logDebug("debug");
   yield* Effect.logInfo("info");

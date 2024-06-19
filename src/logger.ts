@@ -1,5 +1,10 @@
 import { createConsola, LogLevels } from "consola";
-import { Config, Effect, Layer, Logger, LogLevel } from "effect";
+import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
+import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import * as Logger from "effect/Logger";
+import * as LogLevel from "effect/LogLevel";
 
 const make = () => {
   const consola = createConsola({
@@ -31,7 +36,7 @@ const make = () => {
 };
 
 export const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
-  Config.withDefault(LogLevel.Debug),
+  Config.withDefault(LogLevel.Warning),
   Effect.andThen((level) => Logger.minimumLogLevel(level)),
   Layer.unwrapEffect,
 );
@@ -39,3 +44,24 @@ export const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
 export const Live = Logger.replace(Logger.defaultLogger, make()).pipe(
   Layer.provide(LogLevelLive),
 );
+
+export const provideVerboseDebugLogLevel = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  verbose: boolean,
+) => {
+  const withLogger = Effect.provide(effect, Live);
+
+  if (!verbose) {
+    return withLogger;
+  } else {
+    return withLogger.pipe(
+      Effect.provide(
+        Layer.setConfigProvider(
+          ConfigProvider.fromMap(
+            new Map([["LOG_LEVEL", LogLevel.Debug.label]]),
+          ),
+        ),
+      ),
+    );
+  }
+};

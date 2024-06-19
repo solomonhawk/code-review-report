@@ -19,9 +19,10 @@
     "exactOptionalPropertyTypes": true,
     "plugins": [{ "name": "@effect/language-service" }],
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "~/lib/*": ["./lib/*"]
     },
     "types": ["vitest/globals"]
   },
-  "include": ["*.mjs", "src/**/*.ts", "test/**/*.ts"]
+  "include": ["*.mjs", "src/**/*.ts", "lib/**/*.ts", "test/**/*.ts"]
 }
