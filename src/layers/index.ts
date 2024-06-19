@@ -1,8 +1,13 @@
 import { NodeContext } from "@effect/platform-node";
 import { Layer } from "effect";
 import * as CustomLogger from "~/logger";
+import { UsersList } from "./users-list";
 
-export const MainLive = Layer.mergeAll(NodeContext.layer, CustomLogger.Live);
+export const MainLive = Layer.mergeAll(
+  NodeContext.layer,
+  UsersList.Live,
+  CustomLogger.Live,
+);
 
 /**
  * To override the log level configuration (e.g. when testing), provide

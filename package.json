@@ -27,6 +27,7 @@
     "consola": "^3.2.3",
     "date-fns": "^2.29.3",
     "effect": "^3.3.1",
+    "mdbox": "^0.1.0",
     "parse-link-header": "^2.0.0",
     "vite": "^5.3.1"
   },

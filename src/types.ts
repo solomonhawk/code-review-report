@@ -1,8 +1,3 @@
-export const formatters: Format[] = [
-  "text",
-  "json",
-  "slack-blocks",
-  "markdown",
-] as const;
+export const formatters = ["text", "json", "slack", "markdown"] as const;
 
-export type Format = "text" | "json" | "slack-blocks" | "markdown";
+export type Format = (typeof formatters)[number];

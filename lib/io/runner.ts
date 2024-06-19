@@ -6,3 +6,9 @@ export const setFailed = (message: string) => {
     core.setFailed(message);
   });
 };
+
+export const setOutput = (blocksJson: string) => {
+  return Effect.sync(() => {
+    core.setOutput("blocks", blocksJson);
+  });
+};

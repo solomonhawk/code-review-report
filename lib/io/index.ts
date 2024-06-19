@@ -2,8 +2,6 @@ import * as Effect from "effect/Effect";
 import * as Config from "effect/Config";
 import * as Runner from "./runner";
 
-export { Runner };
-
 export const tapError = <A, E, R>(effect: Effect.Effect<A, E, R>) => {
   return Effect.tapError(effect, (e) => {
     return Effect.gen(function* () {
