@@ -36,26 +36,15 @@ jobs:
       - name: Install NPM Dependencies
         run: npm ci
 
-      - name: Collect code review activity
-        id: collect
+      - name: Build cr-report binary
+        run: npm run build
+
+      - name: Collect and publish code review activity
+        id: report
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-        run: ./bin/code-review
-
-      - name: Debug slack blocks
-        run: echo "${{ steps.collect.outputs.blocks }}"
-
-      - name: Send message to Slack API
-        uses: archive/github-actions-slack@v2.6.0
-        id: notify
-        if: "${{ steps.collect.outputs.blocks != '' }}"
-        with:
-          slack-bot-user-oauth-access-token: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
-          slack-channel: ${{ secrets.SLACK_NOTIFICATION_CHANNEL_ID }}
-          slack-blocks: "${{ steps.collect.outputs.blocks }}"
-
-      - name: Print Slack Message Result
-        if: always()
-        run: echo "${{ steps.notify.outputs.slack-result }}"
+        run: ./bin/cr-report publish -c slack -c notion

@@ -43,9 +43,14 @@ the scheduled cron job to send the report to the main dev slack channel
 
 **Note**: The list of usernames to query activity for is enumerated in `./code-review-report/src/usernames.json`.
 
-| Environment Variable | Purpose |
-| -------------------- | ------- |
-| `GH_TOKEN` | a classic GitHub token that has `repo` access |
-| `NOTION_TOKEN` | secret token to read/write to notion |
-| `SLACK_BOT_USER_OAUTH_ACCESS_TOKEN` | a slack bot oauth token associated with a slack app that has permission to send messages to channels in the Viget org |
-| `SLACK_NOTIFICATION_CHANNEL_ID` | the slack channel ID that will receive weekly notifications of code review activity |
+| Environment Variable | Purpose                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `GH_TOKEN`           | a classic GitHub token that has `repo` access                                                                         |
+| `NOTION_TOKEN`       | secret token to read/write to notion                                                                                  |
+| `SLACK_TOKEN`        | a slack bot oauth token associated with a slack app that has permission to send messages to channels in the Viget org |
+| `SLACK_CHANNEL_ID`   | the slack channel ID that will receive weekly notifications of code review activity                                   |
+
+## Slack Management URLs
+
+https://app.slack.com/apps-manage/T024F9JB8/integrations/profile/A048XJ5QD7T/permissions
+https://api.slack.com/apps/A048XJ5QD7T/oauth

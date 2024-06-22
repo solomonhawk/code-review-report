@@ -1,15 +1,15 @@
 import * as Effect from "effect/Effect";
-import * as Data from "effect/Data";
+import { Channels } from "~/lib/channel";
+import { summary } from "~/test/fixtures/report-summary";
+import type { PublishOpts } from "./options";
 
-class TestError extends Data.TaggedError("TestError")<{ message: string }> {}
+export const program = (opts: PublishOpts) =>
+  Effect.gen(function* () {
+    const channels = yield* Channels;
+    // fetch data (fire off requests in parallel)
 
-export const program = Effect.gen(function* () {
-  yield* new TestError({ message: "test error" });
-  yield* Effect.log("log");
-  yield* Effect.logDebug("debug");
-  yield* Effect.logInfo("info");
-  yield* Effect.logWarning("warning");
-  yield* Effect.logError("error");
-  yield* Effect.logTrace("trace");
-  yield* Effect.logFatal("fatal");
-});
+    // aggregate summary
+
+    // output
+    yield* channels.publish(summary);
+  });

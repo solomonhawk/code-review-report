@@ -1,11 +1,49 @@
-/// <reference lib="dom" />
-/**
- * @NOTE(shawk): node supports fetch as of version 17.5, but TypeScript doesn't
- * know that. The <reference lib="dom"> is a workaround until TypeScript
- * supports it properly.
- */
+import { Schema } from "@effect/schema";
+import * as Effect from "effect/Effect";
 import parseLinkHeader from "parse-link-header";
-import type { ApiResponseData, SearchResults } from "../archive/types";
+import type { Stats } from "~/lib/types";
+import { ApiError } from "./error";
+import { ApiResponseSchema, type SearchResults } from "./types";
+import * as Layer from "effect/Layer";
+import * as Config from "effect/Config";
+// import * as ConfigError from "effect/ConfigError";
+
+export class Api extends Effect.Tag("Api")<
+  Api,
+  {
+    getStats: (
+      author: string,
+      dateRange: readonly [Date, Date],
+    ) => Effect.Effect<Stats, ApiError>;
+    // ) => Effect.Effect<Stats, ApiError | ConfigError.ConfigError>;
+  }
+>() {
+  static Live = Layer.effect(
+    Api,
+    Effect.gen(function* () {
+      const token = yield* Config.string("GH_TOKEN");
+
+      return {
+        getStats: (author, dateRange) => {
+          return Effect.promise(async () => {
+            const [openedPromise, mergedPromise, reviewsPromise] =
+              await Promise.all([
+                pullRequestsOpened(token, author, dateRange),
+                pullRequestsMerged(token, author, dateRange),
+                pullRequestReviews(token, author, dateRange),
+              ]);
+
+            return {
+              opened: openedPromise.total_count,
+              merged: mergedPromise.total_count,
+              reviews: reviewsPromise.total_count,
+            };
+          });
+        },
+      };
+    }),
+  );
+}
 
 export const pullRequestsOpened = async (
   token: string,
@@ -90,6 +128,7 @@ async function query(
   }
 
   return {
+    _tag: "ApiResponseData",
     total_count,
     items: results,
   };
@@ -126,15 +165,16 @@ async function queryPage(
     throw new Error("Failed to get a response!");
   }
 
-  const json = (await response.json()) as ApiResponseData;
+  const json = await response.json();
+  const responseData = Schema.decodeUnknownSync(ApiResponseSchema)(json);
 
-  if ("errors" in json) {
-    throw new Error(json.errors[0].message);
+  if ("errors" in responseData) {
+    throw new Error(responseData.errors[0].message);
   }
 
   return {
     links: parseLinkHeader(response.headers.get("Link")),
-    data: json,
+    data: responseData,
   };
 }
 

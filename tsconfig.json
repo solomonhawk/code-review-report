@@ -20,7 +20,8 @@
     "plugins": [{ "name": "@effect/language-service" }],
     "paths": {
       "~/*": ["./src/*"],
-      "~/lib/*": ["./lib/*"]
+      "~/lib/*": ["./lib/*"],
+      "~/test/*": ["./test/*"]
     },
     "types": ["vitest/globals"]
   },

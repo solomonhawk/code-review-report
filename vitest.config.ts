@@ -5,5 +5,8 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
+    sequence: {
+      concurrent: true,
+    },
   },
 });

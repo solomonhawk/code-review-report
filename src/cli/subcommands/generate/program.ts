@@ -1,37 +1,33 @@
 import * as Effect from "effect/Effect";
-import { type GenerateOpts } from "./command";
-import { ReportSummary } from "~/lib/types";
+import { isError } from "effect/Predicate";
 import { Formatter } from "~/layers/formatter";
+import { IO } from "~/layers/io";
+import { summary } from "~/test/fixtures/report-summary";
+import { type GenerateOpts } from "./options";
 
 export const program = (opts: GenerateOpts) =>
-  Effect.gen(function* () {
-    // fetch data (fire off requests in parallel)
-    const summary = {
-      dateRange: [new Date(), new Date()],
-      dateRangeFormatted: ["start", "end"],
-      totalOpenedPrs: 10,
-      totalMergedPrs: 10,
-      totalReviews: 18,
-      mostActiveProject: "most-active-project",
-      mostActiveProjectActivity: 5,
-      mostActiveUser: "most-active-user",
-      mostActiveUserActivity: 3,
-      userStats: {
-        "user-1": { opened: 1, merged: 2, reviews: 3 },
-        "user-2": { opened: 1, merged: 2, reviews: 3 },
-      },
-      projectStats: {
-        "project-1": { opened: 1, merged: 2, reviews: 3 },
-        "project-2": { opened: 1, merged: 2, reviews: 3 },
-      },
-    } satisfies ReportSummary;
+  IO.pipe((io) => {
+    return Effect.gen(function* () {
+      const formatter = yield* Formatter;
 
-    const formatter = yield* Formatter;
+      // fetch data (fire off requests in parallel)
 
-    const result = formatter.format(summary);
+      // aggregate summary
 
-    yield* Effect.logDebug(result);
-    // aggregate summary
-    // format
-    // output
+      // format
+      const result = yield* formatter.formatString(summary);
+
+      // throw new Error("error");
+      // yield* Effect.logDebug("test");
+      // output
+      yield* io.write(result);
+    }).pipe(
+      Effect.catchTags({
+        IOError: (e) =>
+          io.writeError(isError(e) ? e : new Error("Unknown error")),
+      }),
+      Effect.catchAllDefect((e) => {
+        return io.writeError(isError(e) ? e : new Error("Unknown error"));
+      }),
+    );
   });

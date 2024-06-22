@@ -1,4 +1,9 @@
+import * as Effect from "effect/Effect";
+import * as Data from "effect/Data";
+
+export class IOError extends Data.TaggedError("IOError")<{ message: string }> {}
+
 export interface IOImpl {
-  write: (formattedReport: string) => void;
-  onError: (error: Error) => void;
+  write: (formattedReport: string) => Effect.Effect<void, IOError>;
+  writeError: (error: Error) => Effect.Effect<void, IOError>;
 }

@@ -1,19 +1,28 @@
-import * as Effect from "effect/Effect";
 import * as Config from "effect/Config";
-import * as Runner from "./runner";
+import * as Effect from "effect/Effect";
+import { DefaultIO } from "./default";
+import { RunnerIO } from "./runner";
+import { FileIO } from "./file";
+import * as Option from "effect/Option";
 
-export const tapError = <A, E, R>(effect: Effect.Effect<A, E, R>) => {
-  return Effect.tapError(effect, (e) => {
+export const withIO =
+  (output?: Option.Option<string>) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>) => {
     return Effect.gen(function* () {
-      // @TODO(shawk): move to catch* below?
-      yield* Effect.logError(e);
+      const isCi = yield* Config.boolean("CI").pipe(Config.withDefault(false));
 
-      const isCI = yield* Config.boolean("CI");
-
-      if (isCI) {
-        // @TODO(shawk): extract error message from failure
-        yield* Runner.setFailed("Failed to run command");
+      if (isCi) {
+        yield* Effect.logDebug("Using Runner IO");
+        return yield* Effect.provide(effect, RunnerIO.Live);
       }
+
+      if (output && Option.isSome(output)) {
+        const filepath = Option.getOrThrow(output);
+
+        yield* Effect.logDebug(`Using file IO with output: ${filepath}`);
+        return yield* Effect.provide(effect, FileIO.makeLive(filepath));
+      }
+
+      return yield* Effect.provide(effect, DefaultIO.Live);
     });
-  });
-};
+  };

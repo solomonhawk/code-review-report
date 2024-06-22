@@ -1,25 +1,24 @@
 import * as Command from "@effect/cli/Command";
-import * as Options from "@effect/cli/Options";
-import { shift, span, verbose, workflow } from "~/cli/options";
-import * as CustomLogger from "~/logger";
+import * as Effect from "effect/Effect";
+import * as CustomLogger from "~/layers/logger";
+import { withChannels } from "~/lib/channel";
+import { withFormatter } from "~/lib/format";
+import { options } from "./options";
 import { program } from "./program";
 
-export const channel = Options.choice("channel", ["slack", "notion"]).pipe(
-  Options.withDescription("Where to publish"),
-  Options.repeated,
-);
-
 /**
- * publish --channel slack | notion...
- *         [(-s, --span integer)]
- *         [(-t, --shift integer)]
+ * publish (-c, --channel slack | notion)...
+ *         [(-d, --days integer)]
+ *         [(-t, --offset integer)]
  *         [(-v, --verbose)]
  */
-export const publish = Command.make(
-  "publish",
-  { span, shift, channel, verbose, workflow },
-  (opts) => {
-    console.log(opts);
-    return CustomLogger.provideVerboseDebugLogLevel(program, opts.verbose);
-  },
-);
+export const publish = Command.make("publish", options, (opts) => {
+  console.log(opts);
+
+  return program(opts).pipe(
+    withChannels(opts.channel),
+    withFormatter("slack"),
+    CustomLogger.provideVerboseDebugLogLevel(opts.verbose),
+    Effect.withSpan("publish program"),
+  );
+});
