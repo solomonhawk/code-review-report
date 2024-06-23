@@ -25,7 +25,7 @@ export class NotionChannel extends Effect.Tag("NotionChannel")<
       const notion = yield* NotionChannel;
 
       yield* channels.register("notion", notion.publish);
-    }).pipe(Effect.provide(NotionChannel.Test));
+    }).pipe(Effect.provide(NotionChannel.Live));
 
   /**
    * Test layer for NotionChannel
@@ -33,7 +33,8 @@ export class NotionChannel extends Effect.Tag("NotionChannel")<
   static Test = Layer.succeed(
     NotionChannel,
     NotionChannel.of({
-      publish: (report) => Effect.logDebug(`notion publish, ${report}`),
+      publish: (report) =>
+        Effect.logInfo(`notion publish, ${JSON.stringify(report, null, 2)}`),
     }),
   );
 

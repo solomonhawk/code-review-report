@@ -1,22 +1,25 @@
 import * as Http from "@effect/platform/HttpClient";
 import { Schema } from "@effect/schema";
-import { Console, pipe } from "effect";
-import * as Scope from "effect/Scope";
+import { pipe } from "effect";
 import * as Array from "effect/Array";
 import * as Chunk from "effect/Chunk";
 import * as Config from "effect/Config";
+import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Record from "effect/Record";
 import * as Schedule from "effect/Schedule";
+import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import parseLinkHeader from "parse-link-header";
 
+import { stripPrefix } from "~/lib/helpers/string";
 import {
   ApiError,
   ApiResponseErrorSchema,
   ApiResponseSchema,
+  TimeoutError,
   type ApiResponseData,
   type ContributorStats,
   type SearchResults,
@@ -60,7 +63,7 @@ export class Api extends Effect.Tag("Api")<
         getContributorStats: (contributorUsernames, dateRange) => {
           return Effect.gen(function* () {
             yield* Effect.logInfo(
-              `Getting contributor stats for ${contributorUsernames}`,
+              `Getting contributor stats for ${contributorUsernames.join(", ")} between ${dateRange[0]} and ${dateRange[1]}...`,
             );
 
             const contributorStats = yield* Effect.forEach(
@@ -112,7 +115,7 @@ export const pullRequestsOpened = (
 ): Effect.Effect<SearchResults, ApiError> => {
   return query(
     httpClient,
-    "opened PRs",
+    `opened PRs by ${author}`,
     `/search/issues?q=type:pr+author:${author}`,
     `Getting pull requests opened by ${author}`,
     dateRange,
@@ -126,7 +129,7 @@ export const pullRequestsMerged = (
 ): Effect.Effect<SearchResults, ApiError> => {
   return query(
     httpClient,
-    "merged PRs",
+    `merged PRs by ${author}`,
     `/search/issues?q=type:pr+is:merged+author:${author}`,
     `Getting pull requests merged by ${author}`,
     dateRange,
@@ -140,27 +143,13 @@ export const pullRequestReviews = (
 ): Effect.Effect<SearchResults, ApiError> => {
   return query(
     httpClient,
-    "reviews",
+    `reviews by ${commenter}`,
     `/search/issues?q=type:pr+commenter:${commenter}+-author:${commenter}`,
     `Getting reviews by ${commenter}`,
     dateRange,
   );
 };
 
-/**
- * @NOTE(shawk): GitHub's search API returns up to 1000 results per page, so
- * in most cases we should be able to query all the data we need in a single
- * request. However, if we're querying for a large date range, we may need to
- * make multiple requests to get all the data (using the `Link` header to
- * traverse subsequent pages of results).
- *
- * @NOTE(shawk): GitHub's search API is rate limited to 30 requests per minute.
- * If we're querying for a large date range, we may need to account for an API
- * response that indicates we've exceeded the rate limit (status 403 with
- * `x-ratelimit-remaining` header set to 0). In that case, we'll wait until the
- * time indicated in `x-ratelimit-reset` and try again (up to 3 times, before
- * giving up entirely).
- */
 const query = (
   httpClient: HttpClient,
   label: string,
@@ -195,13 +184,19 @@ const query = (
     Effect.withSpan(`query ${description}`),
   );
 };
-
+/**
+ * @NOTE(shawk): GitHub's search API returns up to 1000 results per page, so
+ * in most cases we should be able to query all the data we need in a single
+ * request. However, if we're querying for a large date range, we may need to
+ * make multiple requests to get all the data (using the `Link` header to
+ * traverse subsequent pages of results).
+ */
 const streamQuery = (
   httpClient: HttpClient,
   url: string,
   label: string,
 ): Stream.Stream<SearchResults, ApiError> => {
-  const initialUrl = `${url}&per_page=10&page=1`;
+  const initialUrl = `${url}&per_page=1000&page=1`;
 
   return Stream.paginateChunkEffect(initialUrl, (currentUrl) => {
     return queryPage(httpClient, currentUrl, label).pipe(
@@ -215,6 +210,14 @@ const streamQuery = (
   });
 };
 
+/**
+ * @NOTE(shawk): GitHub's search API is rate limited to 30 requests per minute.
+ * If we're querying for a large date range, we may need to account for an API
+ * response that indicates we've exceeded the rate limit (status 403 with
+ * `x-ratelimit-remaining` header set to 0). In that case, we'll wait until the
+ * time indicated in `x-ratelimit-reset` and try again (up to 5 times, before
+ * giving up entirely).
+ */
 const queryPage = (
   httpClient: HttpClient,
   url: string,
@@ -226,12 +229,23 @@ const queryPage = (
   return pipe(
     Http.request.get(url),
     httpClient,
+
+    Effect.timeoutFail({
+      duration: "10 seconds",
+      onTimeout: () =>
+        new TimeoutError({
+          message: "Timed out fetching data",
+        }),
+    }),
+
     Effect.tap(() =>
       Effect.logInfo(
-        `Querying ${label} ${new URL(url, BASE_API_URL).searchParams.get("page")}`,
+        `Querying ${label}, page: ${new URL(url, BASE_API_URL).searchParams.get("page")}`,
       ),
     ),
+
     Effect.tap(() => Effect.logDebug(`URL: ${url}`)),
+
     Effect.flatMap((res) => {
       return Effect.gen(function* () {
         if (exceededRateLimit(res)) {
@@ -242,7 +256,10 @@ const queryPage = (
         }
 
         if (res.status > 200) {
-          return yield* new ApiError({ message: "Response error", errors: [] });
+          return yield* new ApiError({
+            message: "Response error",
+            errors: [],
+          });
         }
 
         return yield* Effect.succeed(res).pipe(
@@ -276,19 +293,13 @@ const queryPage = (
     }),
 
     Effect.retry(
-      Schedule.compose(Schedule.exponential(1000), Schedule.recurs(5)).pipe(
-        Schedule.resetWhen(() => true),
+      pipe(
+        Schedule.compose(Schedule.exponential(1000), Schedule.recurs(5)),
+        Schedule.jittered,
       ),
     ),
 
-    // @NOTE(shawk): how can I specify a timeout here that does not apply to
-    // the rate limit reset?
-    Effect.timeoutFail({
-      duration: "60 seconds",
-      onTimeout: () =>
-        new ApiError({ message: "Timed out fetching data", errors: [] }),
-    }),
-
+    // @TODO(shawk): remove this once I figure out wtf I'm doing wrong with error handling
     Effect.tapErrorCause((cause) => {
       return Console.error(cause);
     }),
@@ -312,6 +323,11 @@ const queryPage = (
           errors: [e],
         });
       },
+      TimeoutError: (e) =>
+        new ApiError({
+          message: e.message,
+          errors: [e],
+        }),
     }),
 
     Effect.withSpan(`queryPage ${url}`),
@@ -330,15 +346,7 @@ function waitForRateLimitReset(response: Http.response.ClientResponse) {
 
   const waitTimeMs = reset.getTime() - Date.now();
 
-  return Effect.logDebug(
+  return Effect.logInfo(
     `Rate limit exceeded. Waiting ${waitTimeMs / 1000} seconds to try again...`,
   ).pipe(Effect.zipRight(Effect.sleep(waitTimeMs + 1000)));
-}
-
-// strips the specified string prefix from the input string
-function stripPrefix(
-  str: string | undefined,
-  prefix: string,
-): string | undefined {
-  return str && str.startsWith(prefix) ? str.slice(prefix.length) : str;
 }

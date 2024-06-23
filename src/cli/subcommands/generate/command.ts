@@ -14,9 +14,8 @@ import { program } from "./program";
  *          [(-v, --verbose)]
  */
 export const generate = Command.make("generate", options, (opts) => {
-  console.log(opts);
-
   return program(opts).pipe(
+    Effect.tap(Effect.logDebug(opts)),
     withFormatter(opts.format),
     withIO(opts.output),
     CustomLogger.provideVerboseDebugLogLevel(opts.verbose),

@@ -13,9 +13,8 @@ import { program } from "./program";
  *         [(-v, --verbose)]
  */
 export const publish = Command.make("publish", options, (opts) => {
-  console.log(opts);
-
   return program(opts).pipe(
+    Effect.tap(Effect.logDebug(opts)),
     withChannels(opts.channel),
     withFormatter("slack"),
     CustomLogger.provideVerboseDebugLogLevel(opts.verbose),

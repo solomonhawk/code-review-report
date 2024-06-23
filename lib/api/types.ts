@@ -8,6 +8,10 @@ export class ApiError extends Data.TaggedError("ApiError")<{
   }[];
 }> {}
 
+export class TimeoutError extends Data.TaggedError("TimeoutError")<{
+  message: string;
+}> {}
+
 export const ApiResponseDataSchema = Schema.Struct({
   total_count: Schema.Int,
   items: Schema.mutable(
