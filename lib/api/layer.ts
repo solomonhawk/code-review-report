@@ -1,6 +1,6 @@
 import * as Http from "@effect/platform/HttpClient";
 import { Schema } from "@effect/schema";
-import { pipe } from "effect";
+import { Duration, pipe } from "effect";
 import * as Array from "effect/Array";
 import * as Chunk from "effect/Chunk";
 import * as Config from "effect/Config";
@@ -178,12 +178,15 @@ const query = (
     Effect.timed,
     Effect.flatMap(([duration, searchResults]) =>
       Effect.succeed(searchResults).pipe(
-        Effect.tap(() => Effect.logDebug(`${description} (in ${duration})`)),
+        Effect.tap(
+          Effect.logDebug(`${description} (in ${Duration.format(duration)})`),
+        ),
       ),
     ),
     Effect.withSpan(`query ${description}`),
   );
 };
+
 /**
  * @NOTE(shawk): GitHub's search API returns up to 1000 results per page, so
  * in most cases we should be able to query all the data we need in a single
@@ -200,12 +203,7 @@ const streamQuery = (
 
   return Stream.paginateChunkEffect(initialUrl, (currentUrl) => {
     return queryPage(httpClient, currentUrl, label).pipe(
-      Effect.andThen((page) => {
-        return [
-          Chunk.of(page.data),
-          Option.isSome(page.nextUrl) ? page.nextUrl : Option.none<string>(),
-        ];
-      }),
+      Effect.andThen((page) => [Chunk.of(page.data), page.nextUrl]),
     );
   });
 };

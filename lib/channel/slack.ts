@@ -25,7 +25,7 @@ export class SlackChannel extends Effect.Tag("SlackChannel")<
       const slack = yield* SlackChannel;
 
       yield* channels.register("slack", slack.publish);
-    }).pipe(Effect.provide(SlackChannel.Test));
+    }).pipe(Effect.provide(SlackChannel.Live));
 
   /**
    * Test layer for SlackChannel
@@ -33,7 +33,8 @@ export class SlackChannel extends Effect.Tag("SlackChannel")<
   static Test = Layer.succeed(
     SlackChannel,
     SlackChannel.of({
-      publish: (report) => Effect.logDebug(`slack publish, ${report}`),
+      publish: (report) =>
+        Effect.logInfo(`slack publish, ${JSON.stringify(report, null, 2)}`),
     }),
   );
 
@@ -67,6 +68,7 @@ export class SlackChannel extends Effect.Tag("SlackChannel")<
                   client.chat.postMessage({
                     channel: channelId,
                     blocks,
+                    text: `Weekly Report ${summary.dateRangeFormatted[0]} - ${summary.dateRangeFormatted[1]}`,
                   }),
                 {
                   onError: (e) =>
