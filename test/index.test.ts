@@ -1,5 +1,7 @@
 import { it } from "@effect/vitest";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
+import { cli } from "~/cli";
 
 describe("CLI Options", () => {
   it.effect("should require a subcommand", () => {

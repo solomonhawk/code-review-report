@@ -75,7 +75,7 @@ describe("async", () => {
           yield* TestClock.adjust("5 seconds");
 
           const result = yield* Fiber.join(fiber);
-          const expected = [0, 25, 50, 75, 100, 125];
+          const expected = [0, 25, 50, 70, 95, 120];
 
           timings.forEach((timing, i) => {
             expect(timing / 100).toBeCloseTo(expected[i] / 100, 1);

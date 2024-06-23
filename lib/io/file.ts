@@ -1,7 +1,9 @@
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Predicate from "effect/Predicate";
 import fs from "node:fs";
 import path from "node:path";
+
 import { IOError, IOImpl } from "./types";
 
 export class FileIO extends Effect.Tag("IO")<FileIO, IOImpl>() {
@@ -10,23 +12,21 @@ export class FileIO extends Effect.Tag("IO")<FileIO, IOImpl>() {
       FileIO,
       FileIO.of({
         write: (formattedReport: string) =>
-          Effect.async<void, IOError>((resume) => {
-            const pathDirectory = path.resolve(
-              process.cwd(),
-              path.dirname(output),
-            );
-
-            if (!fs.existsSync(pathDirectory)) {
-              fs.mkdirSync(pathDirectory, { recursive: true });
-            }
-
-            fs.writeFile(output, formattedReport, (err) => {
-              if (err) {
-                resume(Effect.fail(new IOError({ message: err.message })));
-              } else {
-                resume(Effect.succeed(void 0));
-              }
-            });
+          Effect.tryPromise({
+            try: async () => {
+              const pathDirectory = path.resolve(
+                process.cwd(),
+                path.dirname(output),
+              );
+              await fs.promises.mkdir(pathDirectory, { recursive: true });
+              await fs.promises.writeFile(output, formattedReport);
+            },
+            catch: (e) =>
+              new IOError({
+                message: Predicate.isError(e)
+                  ? e.message
+                  : "Unknown FileIO error",
+              }),
           }),
         writeError: (error: Error) => Effect.logError(error.message),
       }),

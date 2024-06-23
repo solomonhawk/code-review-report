@@ -2,12 +2,13 @@ import { WebClient } from "@slack/web-api";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { ReportSummary } from "~/lib/types";
-import { ChannelError } from "./types";
+import * as Predicate from "effect/Predicate";
+
 import { Formatter } from "~/layers/formatter";
-import { Channels } from ".";
-import { isError } from "effect/Predicate";
-import { asyncWithRetryAndTimeout } from "../helpers";
+import { asyncWithRetryAndTimeout } from "~/lib/helpers";
+import type { ReportSummary } from "~/lib/types";
+import { Channels } from "./layer";
+import { ChannelError } from "./types";
 
 export class SlackChannel extends Effect.Tag("SlackChannel")<
   SlackChannel,
@@ -70,7 +71,7 @@ export class SlackChannel extends Effect.Tag("SlackChannel")<
                 {
                   onError: (e) =>
                     new ChannelError({
-                      message: isError(e)
+                      message: Predicate.isError(e)
                         ? e.message
                         : "Unknown failure sending report to Slack",
                     }),

@@ -4,3 +4,4 @@ node_modules
 archive
 dist
 docker/local/tempo-data
+coverage

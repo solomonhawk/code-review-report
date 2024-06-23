@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     globals: true,
+    reporters: ["dot"],
     sequence: {
       concurrent: true,
     },

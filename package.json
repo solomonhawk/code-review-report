@@ -11,7 +11,8 @@
     "lint": "eslint --max-warnings=0 .",
     "lint:fix": "eslint --max-warnings=0 --fix .",
     "format": "prettier . --write -u",
-    "test": "vitest run",
+    "test": "vitest run --reporter verbose",
+    "test:cov": "vitest run --coverage",
     "test:watch": "vitest watch"
   },
   "author": "Solomon Hawk <solomon.hawk@viget.com> (https://solomonhawk.com)",
@@ -35,7 +36,7 @@
     "consola": "^3.2.3",
     "date-fns": "^2.29.3",
     "dotenv-cli": "^7.4.2",
-    "effect": "^3.3.1",
+    "effect": "^3.4.0",
     "mdbox": "^0.1.0",
     "parse-link-header": "^2.0.0",
     "vite": "^5.3.1"
@@ -51,6 +52,7 @@
     "@types/node": "^20.14.2",
     "@typescript-eslint/eslint-plugin": "^7.7.0",
     "@typescript-eslint/parser": "^7.7.0",
+    "@vitest/coverage-v8": "^1.6.0",
     "dotenv": "^16.0.3",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",

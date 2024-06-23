@@ -1,13 +1,14 @@
+import { Client } from "@notionhq/client";
+import type { CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { ReportSummary } from "~/lib/types";
-import { ChannelError } from "./types";
-import { Channels } from ".";
-import { Client } from "@notionhq/client";
-import { CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
-import { isError } from "effect/Predicate";
+import * as Predicate from "effect/Predicate";
+
 import { asyncWithRetryAndTimeout } from "~/lib/helpers";
+import { ReportSummary } from "~/lib/types";
+import { Channels } from "./layer";
+import { ChannelError } from "./types";
 
 export class NotionChannel extends Effect.Tag("NotionChannel")<
   NotionChannel,
@@ -87,7 +88,7 @@ const publishReport = (
         {
           onError: (e) =>
             new ChannelError({
-              message: isError(e)
+              message: Predicate.isError(e)
                 ? e.message
                 : `Unknown error updating notion page with ID ${existingPageId}`,
             }),
@@ -113,7 +114,7 @@ const publishReport = (
         {
           onError: (e) =>
             new ChannelError({
-              message: isError(e)
+              message: Predicate.isError(e)
                 ? e.message
                 : `Unknown error creating notion page in database with ID ${databaseId}`,
             }),
@@ -144,7 +145,7 @@ const findExistingPage = (notion: Client, databaseId: string, title: string) =>
     {
       onError: (e) =>
         new ChannelError({
-          message: isError(e)
+          message: Predicate.isError(e)
             ? e.message
             : `Unknown error querying notion database with ID ${databaseId}`,
         }),

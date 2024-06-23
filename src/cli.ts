@@ -7,7 +7,7 @@ import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import { isError } from "effect/Predicate";
+import * as Predicate from "effect/Predicate";
 
 import { generate } from "~/cli/subcommands/generate/command";
 import { publish } from "~/cli/subcommands/publish/command";
@@ -33,9 +33,9 @@ const main = Command.make("cr-report", {}, () => {
 
 const command = main.pipe(Command.withSubcommands([generate, publish]));
 
-const cli = Command.run(command, config);
+export const cli = Command.run(command, config);
 
-NodeRuntime.runMain(
+export const runnable = (argv: string[]) =>
   pipe(
     // @NOTE(shawk): without consola hooking `console`, the cli run function
     // calls `Console.error` directly, which bypasses the logger, but it also
@@ -45,7 +45,7 @@ NodeRuntime.runMain(
       Effect.suspend(() => {
         consola.instance.wrapAll();
 
-        return cli(process.argv).pipe(
+        return cli(argv).pipe(
           Effect.andThen(() => consola.instance.restoreAll()),
           Effect.withSpan("cli"),
         );
@@ -53,8 +53,11 @@ NodeRuntime.runMain(
     ),
 
     Effect.catchTags({
+      ApiError: (e) => Effect.logError(e.errors[0]?.message),
+      IOError: Effect.logError,
       ChannelError: Effect.logError,
       ConfigError: Effect.logError,
+      NotImplementedError: Effect.logError,
       SubcommandRequiredError: (e) =>
         Effect.logError(e.message)
           .pipe(
@@ -70,7 +73,7 @@ NodeRuntime.runMain(
     }),
 
     Effect.catchAllDefect((defect) => {
-      if (isError(defect)) {
+      if (Predicate.isError(defect)) {
         return Effect.logFatal(defect.message);
       }
 
@@ -92,8 +95,12 @@ NodeRuntime.runMain(
     // Effect.provide(CustomLogger.Live),
 
     Effect.provide(MainLive),
-  ),
-  {
+  );
+
+try {
+  NodeRuntime.runMain(runnable(process.argv), {
     disableErrorReporting: true,
-  },
-);
+  });
+} catch (e) {
+  console.error(e);
+}
