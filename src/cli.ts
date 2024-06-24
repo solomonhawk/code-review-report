@@ -55,7 +55,7 @@ export const runnable = (argv: string[]) =>
     Effect.catchTags({
       ApiError: (e) => Effect.logError(e.errors[0]?.message),
       IOError: Effect.logError,
-      ChannelError: Effect.logError,
+      // ChannelError: Effect.logError,
       ConfigError: Effect.logError,
       NotImplementedError: Effect.logError,
       SubcommandRequiredError: (e) =>
@@ -91,10 +91,12 @@ export const runnable = (argv: string[]) =>
 
     // @TODO(shawk): how can I provide the custom logger globally when I don't
     // have access to `opts.verbose` here? Without it, some things aren't
-    // logged correctly (with consola).
+    // logged correctly (with consola). Maybe I just move `verbose` to the
+    // main cli program?
     // Effect.provide(CustomLogger.Live),
 
     Effect.provide(MainLive),
+    Effect.scoped,
   );
 
 try {

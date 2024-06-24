@@ -24,6 +24,7 @@ import {
   type ContributorStats,
   type SearchResults,
 } from "./types";
+import { contributorStatsFixture } from "~/test/fixtures";
 
 type HttpClient = Http.client.Client<
   Http.response.ClientResponse,
@@ -42,6 +43,14 @@ export class Api extends Effect.Tag("Api")<
     ) => Effect.Effect<Record<string, ContributorStats>, ApiError>;
   }
 >() {
+  static Test = Layer.succeed(
+    Api,
+    Api.of({
+      getContributorStats: (_usernames, _dateRange) =>
+        Effect.succeed(contributorStatsFixture),
+    }),
+  );
+
   static Live = Layer.effect(
     Api,
     Effect.gen(function* () {

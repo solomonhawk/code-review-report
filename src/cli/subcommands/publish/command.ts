@@ -1,10 +1,10 @@
 import * as Command from "@effect/cli/Command";
 import * as Effect from "effect/Effect";
 import * as CustomLogger from "~/layers/logger";
-import { withChannels } from "~/lib/channel";
 import { withFormatter } from "~/lib/format";
 import { options } from "./options";
 import { program } from "./program";
+import { withPublishers } from "~/lib/publish";
 
 /**
  * publish (-c, --channel slack | notion)...
@@ -14,8 +14,7 @@ import { program } from "./program";
  */
 export const publish = Command.make("publish", options, (opts) => {
   return program(opts).pipe(
-    Effect.tap(Effect.logDebug(opts)),
-    withChannels(opts.channel),
+    withPublishers(opts.channel),
     withFormatter("slack"),
     CustomLogger.provideVerboseDebugLogLevel(opts.verbose),
     Effect.withSpan("publish program"),

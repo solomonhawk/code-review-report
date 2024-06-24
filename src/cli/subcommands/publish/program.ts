@@ -3,14 +3,16 @@ import * as Effect from "effect/Effect";
 import { Aggregator } from "~/layers/aggregator";
 import { ContributorsList } from "~/layers/contributors-list";
 import { Api } from "~/lib/api";
-import { Channels } from "~/lib/channel";
+import { Publisher } from "~/layers/publisher";
 import { dateRange } from "~/lib/helpers/date";
 import type { PublishOpts } from "./options";
 
 export const program = (opts: PublishOpts) =>
   Effect.gen(function* () {
+    yield* Effect.logDebug(opts);
+
     const api = yield* Api;
-    const channels = yield* Channels;
+    const publisher = yield* Publisher;
     const aggregator = yield* Aggregator;
     const { usernames } = yield* ContributorsList;
     const dr = dateRange(opts.days, opts.offset);
@@ -22,5 +24,5 @@ export const program = (opts: PublishOpts) =>
     const summary = yield* aggregator.aggregate(stats, dr);
 
     // output
-    yield* channels.publish(summary);
+    yield* publisher.publishAll(summary);
   });

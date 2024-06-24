@@ -38,7 +38,7 @@ const customLogger = Logger.replaceEffect(
 );
 
 export const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
-  Config.withDefault(LogLevel.Warning),
+  Config.withDefault(LogLevel.Info),
   Effect.andThen((level) => Logger.minimumLogLevel(level)),
 
   // @TODO(shawk): if an invalid LOG_LEVEL is passed, nothing is logged without

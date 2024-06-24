@@ -1,6 +1,6 @@
 import type { ReportSummary } from "~/lib/types";
 
-export const summary = {
+export const summaryFixture = {
   dateRange: [new Date("2024-1-1"), new Date("2024-1-1")],
   dateRangeFormatted: ["start", "end"],
   totalOpenedPrs: 10,

@@ -77,20 +77,20 @@ export class Channels extends Effect.Tag("Channels")<
     );
 }
 
-export const withChannels =
-  (channels: Channel[]) =>
-  <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-    Effect.gen(function* () {
-      /**
-       * @NOTE(shawk): Lazily construct the channel layers based on which ones
-       * are enabled. This lets us avoid raising e.g. ConfigErrors for missing
-       * configuration for channels that are not enabled.
-       */
-      if (channels.includes("slack")) {
-        yield* SlackChannel.registerChannel();
-      }
+// export const withChannels =
+//   (channels: Channel[]) =>
+//   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+//     Effect.gen(function* () {
+//       /**
+//        * @NOTE(shawk): Lazily construct the channel layers based on which ones
+//        * are enabled. This lets us avoid raising e.g. ConfigErrors for missing
+//        * configuration for channels that are not enabled.
+//        */
+//       if (channels.includes("slack")) {
+//         yield* SlackChannel.registerChannel();
+//       }
 
-      if (channels.includes("notion")) {
-        yield* NotionChannel.registerChannel();
-      }
-    }).pipe(Effect.andThen(effect), Effect.provide(Channels.make(channels)));
+//       if (channels.includes("notion")) {
+//         yield* NotionChannel.registerChannel();
+//       }
+//     }).pipe(Effect.andThen(effect), Effect.provide(Channels.make(channels)));

@@ -1,1 +1,1 @@
-export { Channels, withChannels } from "./layer";
+export { Channels } from "./layer";
