@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { MarkdownFormatter } from "./markdown";
-import { summary } from "~/test/fixtures/report-summary";
+import { summaryFixture } from "~/test/fixtures";
 
 describe("MarkdownFormatter", () => {
   it("formatString returns a markdown string", () => {
     const formatter = new MarkdownFormatter();
-    const result = Effect.runSync(formatter.formatString(summary));
+    const result = Effect.runSync(formatter.formatString(summaryFixture));
 
     expect(result).toEqual(`# Code Review Activity for start through end
 
@@ -40,8 +40,8 @@ describe("MarkdownFormatter", () => {
   it("formatBlocks throws", () => {
     const formatter = new MarkdownFormatter();
 
-    expect(() => Effect.runSync(formatter.formatBlocks(summary))).toThrowError(
-      "formatBlocks is not implemented for MarkdownFormatter",
-    );
+    expect(() =>
+      Effect.runSync(formatter.formatBlocks(summaryFixture)),
+    ).toThrowError("formatBlocks is not implemented for MarkdownFormatter");
   });
 });

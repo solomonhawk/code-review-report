@@ -4,15 +4,12 @@ import { IOImpl } from "./types";
 import * as Layer from "effect/Layer";
 
 export class RunnerIO extends Effect.Tag("IO")<RunnerIO, IOImpl>() {
-  static Live = Layer.succeed(
-    RunnerIO,
-    RunnerIO.of({
-      write: (formattedReport: string) => Effect.logInfo(formattedReport),
-      writeError: (error: Error) =>
-        Effect.all([
-          Effect.logError(error.message),
-          Effect.sync(() => core.setFailed(error.message)),
-        ]),
-    }),
-  );
+  static Live = Layer.succeed(RunnerIO, {
+    write: (formattedReport: string) => Effect.logInfo(formattedReport),
+    writeError: (error: Error) =>
+      Effect.all([
+        Effect.logError(error.message),
+        Effect.sync(() => core.setFailed(error.message)),
+      ]),
+  });
 }

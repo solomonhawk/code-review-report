@@ -8,8 +8,5 @@ export class ContributorsList extends Effect.Tag("ContributorsList")<
     usernames: string[];
   }
 >() {
-  static Live = Layer.succeed(
-    ContributorsList,
-    ContributorsList.of({ usernames }),
-  );
+  static Live = Layer.succeed(ContributorsList, { usernames });
 }

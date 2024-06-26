@@ -11,27 +11,12 @@ export class TextFormatter implements FormatterImpl {
     );
   }
 
-  formatBlocks(report: ReportSummary) {
+  formatBlocks(_report: ReportSummary) {
     return new NotImplementedError({
       message: "formatBlocks is not implemented for TextFormatter",
     });
   }
 }
-// export class TextFormatter extends Effect.Tag("Formatter")<
-//   TextFormatter,
-//   FormatterImpl
-// >() {
-//   static Live = Layer.succeed(
-//     TextFormatter,
-//     TextFormatter.of({
-//       format: (report) => {
-//         return Effect.succeed(formatText(report)).pipe(
-//           Effect.withSpan("format text"),
-//         );
-//       },
-//     }),
-//   );
-// }
 
 function formatText(report: ReportSummary) {
   const {

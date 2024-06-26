@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { JsonFormatter } from "./json";
-import { summary } from "~/test/fixtures/report-summary";
+import { summaryFixture } from "~/test/fixtures";
 
 describe("JsonFormatter", () => {
   it("formatString returns a JSON-encoded string", () => {
     const formatter = new JsonFormatter();
-    const result = Effect.runSync(formatter.formatString(summary));
+    const result = Effect.runSync(formatter.formatString(summaryFixture));
 
     expect(result).toEqual(`{
   "dateRange": [
@@ -54,8 +54,8 @@ describe("JsonFormatter", () => {
   it("formatBlocks throws", () => {
     const formatter = new JsonFormatter();
 
-    expect(() => Effect.runSync(formatter.formatBlocks(summary))).toThrowError(
-      "formatBlocks is not implemented for JsonFormatter",
-    );
+    expect(() =>
+      Effect.runSync(formatter.formatBlocks(summaryFixture)),
+    ).toThrowError("formatBlocks is not implemented for JsonFormatter");
   });
 });

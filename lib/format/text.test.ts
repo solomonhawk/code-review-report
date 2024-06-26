@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { TextFormatter } from "./text";
-import { summary } from "~/test/fixtures/report-summary";
+import { summaryFixture } from "~/test/fixtures";
 
 describe("TextFormatter", () => {
   it("formatString returns a plain text string", () => {
     const formatter = new TextFormatter();
-    const result = Effect.runSync(formatter.formatString(summary));
+    const result = Effect.runSync(formatter.formatString(summaryFixture));
 
     expect(result).toEqual(`Code Review Activity for start through end
 
@@ -29,8 +29,8 @@ project-2: PRs opened: 1, PRs merged: 2, Reviews given: 3
   it("formatBlocks throws", () => {
     const formatter = new TextFormatter();
 
-    expect(() => Effect.runSync(formatter.formatBlocks(summary))).toThrowError(
-      "formatBlocks is not implemented for TextFormatter",
-    );
+    expect(() =>
+      Effect.runSync(formatter.formatBlocks(summaryFixture)),
+    ).toThrowError("formatBlocks is not implemented for TextFormatter");
   });
 });

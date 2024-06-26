@@ -2,6 +2,8 @@ import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import * as Queue from "effect/Queue";
 import * as Scope from "effect/Scope";
+import { Consola } from "~/layers/consola";
+import { Formatter } from "~/layers/formatter";
 import { ReportSummary } from "~/lib/types";
 
 export class PublishError extends Data.TaggedError("PublishError")<{
@@ -9,7 +11,9 @@ export class PublishError extends Data.TaggedError("PublishError")<{
 }> {}
 
 export type PublisherImpl = {
-  publish: (summary: ReportSummary) => Effect.Effect<void, PublishError>;
+  publish: (
+    summary: ReportSummary,
+  ) => Effect.Effect<void, PublishError, Consola | Formatter>;
 };
 
 export type PublisherLayerImpl = {

@@ -1,12 +1,12 @@
 import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { SlackFormatter } from "./slack";
-import { summary } from "~/test/fixtures/report-summary";
+import { summaryFixture } from "~/test/fixtures";
 
 describe("SlackFormatter", () => {
   it("formatString returns a markdown string", () => {
     const formatter = new SlackFormatter();
-    const result = Effect.runSync(formatter.formatString(summary));
+    const result = Effect.runSync(formatter.formatString(summaryFixture));
 
     expect(result).toEqual(`[
   {
@@ -79,7 +79,7 @@ describe("SlackFormatter", () => {
   it("formatBlocks returns a list of `KnownBlock`s", () => {
     const formatter = new SlackFormatter();
 
-    const result = Effect.runSync(formatter.formatBlocks(summary));
+    const result = Effect.runSync(formatter.formatBlocks(summaryFixture));
 
     expect(result).toEqual([
       {

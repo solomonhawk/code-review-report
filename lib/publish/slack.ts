@@ -9,6 +9,8 @@ import { Formatter } from "~/layers/formatter";
 import { asyncWithRetryAndTimeout } from "~/lib/helpers";
 import { PublisherImpl, PublishError } from "./types";
 import { Publisher } from "~/layers/publisher";
+import { ReportSummary } from "../types";
+import { Consola } from "~/layers/consola";
 
 export class SlackPublisher extends Effect.Tag("SlackPublisher")<
   SlackPublisher,
@@ -16,7 +18,7 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
 >() {
   static registerPublisher = Effect.suspend(() =>
     Effect.gen(function* () {
-      yield* Effect.logDebug("Registering Notion publisher");
+      yield* Effect.logDebug("Registering Slack publisher");
 
       const publisher = yield* Publisher;
       const slackPublisher = yield* SlackPublisher;
@@ -24,21 +26,19 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
 
       yield* Queue.take(dequeue).pipe(
         Effect.andThen(slackPublisher.publish),
+        Effect.catchAll(Effect.logError),
         Effect.fork,
       );
-    }).pipe(Effect.provide(SlackPublisher.Test)),
+    }),
   );
 
   /**
    * Test layer for SlackPublisher
    */
-  static Test = Layer.succeed(
-    SlackPublisher,
-    SlackPublisher.of({
-      publish: (report) =>
-        Effect.logInfo(`slack publish, ${JSON.stringify(report, null, 2)}`),
-    }),
-  );
+  static Test = Layer.succeed(SlackPublisher, {
+    publish: (report) =>
+      Effect.logInfo(`slack publish, ${JSON.stringify(report, null, 2)}`),
+  });
 
   /**
    * Live layer for SlackPublisher
@@ -46,7 +46,7 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
   static Live = Layer.effect(
     SlackPublisher,
     Effect.gen(function* () {
-      const formatter = yield* Formatter;
+      const consola = yield* Consola;
       const token = yield* Config.string("SLACK_TOKEN").pipe(
         Effect.orElseFail(
           () => new PublishError({ message: "Missing SLACK_TOKEN" }),
@@ -62,36 +62,54 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
       const client = new WebClient(token);
 
       return {
-        publish: (summary) => {
-          return formatter.formatBlocks(summary).pipe(
-            Effect.andThen((blocks) =>
-              asyncWithRetryAndTimeout(
-                () =>
-                  client.chat.postMessage({
-                    channel: channelId,
-                    blocks,
-                    text: `Weekly Report ${summary.dateRangeFormatted[0]} - ${summary.dateRangeFormatted[1]}`,
-                  }),
-                {
-                  onError: (e) =>
-                    new PublishError({
-                      message: Predicate.isError(e)
-                        ? e.message
-                        : "Unknown failure sending report to Slack",
-                    }),
-                  onTimeout: () =>
-                    new PublishError({
-                      message: "Timed out sending report to Slack",
-                    }),
-                },
-              ),
-            ),
-            Effect.catchTags({
-              NotImplementedError: Effect.succeed,
-            }),
-          );
-        },
+        publish: (summary) =>
+          Effect.gen(function* () {
+            yield* consola.start("Publishing to Slack");
+            yield* publishReport(client, channelId, summary);
+            yield* consola.success("Published to Slack");
+          }).pipe(
+            Effect.tapError(() => consola.fail("Failed to publish to Slack")),
+          ),
       };
     }),
   );
 }
+
+const publishReport = (
+  client: WebClient,
+  channelId: string,
+  summary: ReportSummary,
+) =>
+  Effect.gen(function* () {
+    const formatter = yield* Formatter;
+    const blocks = yield* formatter.formatBlocks(summary);
+
+    return yield* asyncWithRetryAndTimeout(
+      () =>
+        client.chat.postMessage({
+          channel: channelId,
+          blocks,
+          text: `Weekly Report ${summary.dateRangeFormatted[0]} - ${summary.dateRangeFormatted[1]}`,
+        }),
+      {
+        onError: (e) =>
+          new PublishError({
+            message: Predicate.isError(e)
+              ? e.message
+              : "Unknown failure sending report to Slack",
+          }),
+        onTimeout: () =>
+          new PublishError({
+            message: "Timed out sending report to Slack",
+          }),
+      },
+    );
+  }).pipe(
+    Effect.catchTags({
+      NotImplementedError: () =>
+        new PublishError({
+          message:
+            "SlackPublisher requires a formatter that implements `formatBlocks`",
+        }),
+    }),
+  );

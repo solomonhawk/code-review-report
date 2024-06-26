@@ -10,6 +10,8 @@ import { Publisher } from "~/layers/publisher";
 import { asyncWithRetryAndTimeout } from "~/lib/helpers";
 import { ReportSummary } from "~/lib/types";
 import { PublishError, PublisherImpl } from "./types";
+import { Consola } from "~/layers/consola";
+import { Console } from "effect";
 
 export class NotionPublisher extends Effect.Tag("NotionPublisher")<
   NotionPublisher,
@@ -25,21 +27,19 @@ export class NotionPublisher extends Effect.Tag("NotionPublisher")<
 
       yield* Queue.take(dequeue).pipe(
         Effect.andThen(notionPublisher.publish),
+        Effect.catchAll(Effect.logError),
         Effect.fork,
       );
-    }).pipe(Effect.provide(NotionPublisher.Test)),
+    }),
   );
 
   /**
    * Test layer for NotionPublisher
    */
-  static Test = Layer.succeed(
-    NotionPublisher,
-    NotionPublisher.of({
-      publish: (report) =>
-        Effect.logInfo(`notion publish, ${JSON.stringify(report, null, 2)}`),
-    }),
-  );
+  static Test = Layer.succeed(NotionPublisher, {
+    publish: (report) =>
+      Effect.logInfo(`notion publish, ${JSON.stringify(report, null, 2)}`),
+  });
 
   /**
    * Live layer for NotionPublisher
@@ -47,6 +47,8 @@ export class NotionPublisher extends Effect.Tag("NotionPublisher")<
   static Live = Layer.effect(
     NotionPublisher,
     Effect.gen(function* () {
+      const consola = yield* Consola;
+
       const token = yield* Config.string("NOTION_TOKEN").pipe(
         Effect.orElseFail(
           () => new PublishError({ message: "Missing NOTION_TOKEN" }),
@@ -62,20 +64,27 @@ export class NotionPublisher extends Effect.Tag("NotionPublisher")<
       const client = new Client({ auth: token });
 
       return {
-        publish: (summary) => publishReport(client, databaseId, summary),
+        publish: (summary) =>
+          Effect.gen(function* () {
+            yield* consola.start(`Publishing to Notion`);
+            yield* publishReport(client, databaseId, summary);
+            yield* consola.success("Published to Notion");
+          }).pipe(
+            Effect.tapError(() => consola.fail("Failed to publish to Notion")),
+          ),
       };
     }),
   );
 }
 
 const publishReport = (
-  notion: Client,
+  client: Client,
   databaseId: string,
   summary: ReportSummary,
 ) =>
   Effect.gen(function* () {
     const title = `Weekly Report ${summary.dateRangeFormatted[0]} - ${summary.dateRangeFormatted[1]}`;
-    const existingPageId = yield* findExistingPage(notion, databaseId, title);
+    const existingPageId = yield* findExistingPage(client, databaseId, title);
     const properties = buildDatabaseProperties(title, summary);
 
     if (existingPageId) {
@@ -85,7 +94,7 @@ const publishReport = (
 
       yield* asyncWithRetryAndTimeout(
         () =>
-          notion.pages.update({
+          client.pages.update({
             page_id: existingPageId,
             properties,
           }),
@@ -109,7 +118,7 @@ const publishReport = (
 
       yield* asyncWithRetryAndTimeout(
         () =>
-          notion.pages.create({
+          client.pages.create({
             parent: {
               database_id: databaseId,
             },
@@ -160,7 +169,7 @@ const findExistingPage = (notion: Client, databaseId: string, title: string) =>
     },
   );
 
-function buildDatabaseProperties(
+export function buildDatabaseProperties(
   title: string,
   summary: ReportSummary,
 ): CreatePageParameters["properties"] {

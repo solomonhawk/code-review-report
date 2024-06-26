@@ -14,14 +14,11 @@ export class Consola extends Effect.Tag("Consola")<Consola, ConsolaImpl>() {
   static Live = Layer.suspend(() => {
     const consola = makeConsola();
 
-    return Layer.succeed(
-      Consola,
-      Consola.of({
-        instance: consola,
-        start: (label: string) => Effect.sync(() => consola.start(label)),
-        fail: (label: string) => Effect.sync(() => consola.fail(label)),
-        success: (label: string) => Effect.sync(() => consola.success(label)),
-      }),
-    );
+    return Layer.succeed(Consola, {
+      instance: consola,
+      start: (label: string) => Effect.sync(() => consola.start(label)),
+      fail: (label: string) => Effect.sync(() => consola.fail(label)),
+      success: (label: string) => Effect.sync(() => consola.success(label)),
+    });
   });
 }

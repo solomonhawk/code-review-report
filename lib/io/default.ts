@@ -4,11 +4,8 @@ import * as Console from "effect/Console";
 import { IOImpl } from "./types";
 
 export class DefaultIO extends Effect.Tag("IO")<DefaultIO, IOImpl>() {
-  static Live = Layer.succeed(
-    DefaultIO,
-    DefaultIO.of({
-      write: (formattedReport: string) => Console.log(formattedReport),
-      writeError: (error: Error) => Effect.logError(error.message),
-    }),
-  );
+  static Live = Layer.succeed(DefaultIO, {
+    write: (formattedReport: string) => Console.log(formattedReport),
+    writeError: (error: Error) => Effect.logError(error.message),
+  });
 }

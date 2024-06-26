@@ -11,12 +11,9 @@ export class DefaultAggregator extends Effect.Tag("Aggregator")<
   DefaultAggregator,
   AggregatorImpl
 >() {
-  static Live = Layer.succeed(
-    DefaultAggregator,
-    DefaultAggregator.of({
-      aggregate,
-    }),
-  );
+  static Live = Layer.succeed(DefaultAggregator, {
+    aggregate,
+  });
 }
 
 function aggregate(

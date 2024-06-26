@@ -28,11 +28,11 @@ export const withPublishers =
   (channels: Channel[]) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>
     Effect.all([
-      NotionPublisher.registerPublisher.pipe(
-        Effect.when(() => channels.includes("notion")),
-      ),
-      SlackPublisher.registerPublisher.pipe(
-        Effect.when(() => channels.includes("slack")),
-      ),
+      NotionPublisher.registerPublisher
+        .pipe(Effect.when(() => channels.includes("notion")))
+        .pipe(Effect.provide(NotionPublisher.Live)),
+      SlackPublisher.registerPublisher
+        .pipe(Effect.when(() => channels.includes("slack")))
+        .pipe(Effect.provide(SlackPublisher.Live)),
       effect,
     ]);

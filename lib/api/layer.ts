@@ -43,13 +43,10 @@ export class Api extends Effect.Tag("Api")<
     ) => Effect.Effect<Record<string, ContributorStats>, ApiError>;
   }
 >() {
-  static Test = Layer.succeed(
-    Api,
-    Api.of({
-      getContributorStats: (_usernames, _dateRange) =>
-        Effect.succeed(contributorStatsFixture),
-    }),
-  );
+  static Test = Layer.succeed(Api, {
+    getContributorStats: (_usernames, _dateRange) =>
+      Effect.succeed(contributorStatsFixture),
+  });
 
   static Live = Layer.effect(
     Api,
