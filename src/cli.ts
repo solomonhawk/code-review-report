@@ -72,6 +72,8 @@ export const runnable = (argv: string[]) =>
           .pipe(Effect.provide(CustomLogger.Live)),
     }),
 
+    Effect.provide(MainLive),
+
     Effect.catchAllDefect((defect) => {
       if (Predicate.isError(defect)) {
         return Effect.logFatal(defect.message);
@@ -97,7 +99,6 @@ export const runnable = (argv: string[]) =>
     // main cli program?
     // Effect.provide(CustomLogger.Live),
 
-    Effect.provide(MainLive),
     Effect.awaitAllChildren,
     Effect.scoped,
   );

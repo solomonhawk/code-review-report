@@ -1,31 +1,32 @@
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Predicate from "effect/Predicate";
-import fs from "node:fs";
 import path from "node:path";
-
+import { FileSystem } from "@effect/platform";
 import { IOError, IOImpl } from "./types";
 
 export class FileIO extends Effect.Tag("IO")<FileIO, IOImpl>() {
   static makeLive = (output: string) =>
     Layer.succeed(FileIO, {
       write: (formattedReport: string) =>
-        Effect.tryPromise({
-          try: async () => {
-            const pathDirectory = path.resolve(
-              process.cwd(),
-              path.dirname(output),
-            );
-            await fs.promises.mkdir(pathDirectory, { recursive: true });
-            await fs.promises.writeFile(output, formattedReport);
-          },
-          catch: (e) =>
-            new IOError({
-              message: Predicate.isError(e)
-                ? e.message
-                : "Unknown FileIO error",
-            }),
-        }),
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const pathDirectory = path.resolve(
+            process.cwd(),
+            path.dirname(output),
+          );
+          yield* fs.makeDirectory(pathDirectory, { recursive: true });
+          yield* fs.writeFile(output, Buffer.from(formattedReport));
+        }).pipe(
+          Effect.catchAll(
+            (e) =>
+              new IOError({
+                message: Predicate.isError(e)
+                  ? e.message
+                  : "Unknown FileIO error",
+              }),
+          ),
+        ),
       writeError: (error: Error) => Effect.logError(error.message),
     });
 }

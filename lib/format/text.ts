@@ -1,5 +1,4 @@
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
 import { NotImplementedError, type FormatterImpl } from "~/lib/format/types";
 import { trimMultiline } from "~/lib/helpers";
 import { ReportSummary } from "../types";

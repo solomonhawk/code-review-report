@@ -1,6 +1,5 @@
 import type { KnownBlock } from "@slack/types";
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
 import type { FormatterImpl } from "~/lib/format/types";
 import { ReportSummary } from "~/lib/types";
 

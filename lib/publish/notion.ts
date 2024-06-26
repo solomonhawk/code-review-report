@@ -11,7 +11,6 @@ import { asyncWithRetryAndTimeout } from "~/lib/helpers";
 import { ReportSummary } from "~/lib/types";
 import { PublishError, PublisherImpl } from "./types";
 import { Consola } from "~/layers/consola";
-import { Console } from "effect";
 
 export class NotionPublisher extends Effect.Tag("NotionPublisher")<
   NotionPublisher,

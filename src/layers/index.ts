@@ -1,5 +1,5 @@
 import { HttpClient } from "@effect/platform";
-import { NodeContext } from "@effect/platform-node";
+import { NodeContext, NodeFileSystem } from "@effect/platform-node";
 import { Layer } from "effect";
 import { DefaultAggregator } from "~/lib/aggregate/layer";
 import { Api } from "~/lib/api";
@@ -12,9 +12,10 @@ export const MainLive = Layer.mergeAll(
   ContributorsList.Live,
   DefaultAggregator.Live,
   DefaultPublisher.Live,
-  Api.Test,
+  Api.Live,
   NodeSdkLive,
   NodeContext.layer,
+  NodeFileSystem.layer,
 ).pipe(
   Layer.provideMerge(Consola.Live),
   Layer.provideMerge(HttpClient.client.layer),
