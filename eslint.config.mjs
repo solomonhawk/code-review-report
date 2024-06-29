@@ -6,7 +6,10 @@ import tseslint from "typescript-eslint";
 /** @type {import("eslint").Linter.FlatConfig} */
 const config = {
   rules: {
-    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+    ],
   },
 };
 

@@ -41,11 +41,11 @@ export const LogLevelLive = Config.logLevel("LOG_LEVEL").pipe(
   Config.withDefault(LogLevel.Info),
   Effect.andThen((level) => Logger.minimumLogLevel(level)),
 
-  // @TODO(shawk): if an invalid LOG_LEVEL is passed, nothing is logged without
+  // @NOTE(shawk): if an invalid LOG_LEVEL is passed, nothing is logged without
   // the following
   Effect.tapError(Effect.logError),
 
-  // @TODO(shawk): if an invalid LOG_LEVEL is passed, the logged error does not
+  // @NOTE(shawk): if an invalid LOG_LEVEL is passed, the logged error does not
   // use the consola logger unless I also provide it here (again)
   Effect.provide(customLogger),
   Layer.unwrapEffect,
