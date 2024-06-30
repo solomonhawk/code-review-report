@@ -5,6 +5,7 @@ import { withFormatter } from "~/lib/format";
 import { options } from "./options";
 import { program } from "./program";
 import { withPublishers } from "~/lib/publish";
+import { withIO } from "~/lib/io";
 
 /**
  * publish (-c, --channel slack | notion)...
@@ -16,6 +17,7 @@ export const publish = Command.make("publish", options, (opts) => {
   return program(opts).pipe(
     withPublishers(opts.channel),
     withFormatter("slack"),
+    withIO(),
     CustomLogger.provideVerboseDebugLogLevel(opts.verbose),
     Effect.withSpan("publish program"),
   );

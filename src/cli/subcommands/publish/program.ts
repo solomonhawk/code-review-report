@@ -1,9 +1,12 @@
+import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
+import * as Predicate from "effect/Predicate";
 
 import { Aggregator } from "~/layers/aggregator";
 import { ContributorsList } from "~/layers/contributors-list";
-import { Api } from "~/lib/api";
+import { IO } from "~/layers/io";
 import { Publisher } from "~/layers/publisher";
+import { Api } from "~/lib/api";
 import { dateRange } from "~/lib/helpers/date";
 import type { PublishOpts } from "./options";
 
@@ -25,4 +28,17 @@ export const program = (opts: PublishOpts) =>
 
     // output
     yield* publisher.publishAll(summary);
-  });
+  }).pipe(
+    Effect.tapError((e) => IO.writeError(e)),
+    Effect.catchAllDefect((defect) => {
+      if (Predicate.isError(defect)) {
+        return IO.writeError(defect);
+      }
+
+      if (Cause.isRuntimeException(defect)) {
+        return IO.writeError(defect);
+      }
+
+      return IO.writeError(new Error("An unknown defect occurred"));
+    }),
+  );
