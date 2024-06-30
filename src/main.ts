@@ -92,7 +92,6 @@ export const main = (argv: string[]) =>
       ]);
     }),
 
-    Effect.catchAllCause(Effect.logError),
     Effect.awaitAllChildren,
     Effect.scoped,
   );

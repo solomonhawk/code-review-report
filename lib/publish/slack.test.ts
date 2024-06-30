@@ -1,15 +1,20 @@
 import { it } from "@effect/vitest";
+import { ChatPostMessageResponse } from "@slack/web-api";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
+import * as Either from "effect/Either";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as TestClock from "effect/TestClock";
+
 import { Consola } from "~/layers/consola";
 import { Publisher } from "~/layers/publisher";
 import { withFormatter } from "~/lib/format";
+import { createSlackBlocks } from "~/lib/format/slack";
 import { summaryFixture } from "~/test/fixtures";
 import { DefaultPublisher } from "./layer";
 import { SlackPublisher } from "./slack";
 import { PublishError } from "./types";
-import { createSlackBlocks } from "../format/slack";
 
 const mocks = vi.hoisted(() => {
   return {
@@ -26,6 +31,35 @@ vi.mock("@slack/web-api", () => {
 
   return { WebClient };
 });
+
+const slackPostMessageSuccessData = {
+  ok: true,
+  channel: "C048MLBK9T6",
+  ts: "1719717168.430379",
+  message: {
+    user: "U048XJHEQGH",
+    type: "message",
+    ts: "1719717168.430379",
+    bot_id: "B048MD7CKAQ",
+    app_id: "A048XJ5QD7T",
+    text: "Weekly Report Jun 22, 2024 - Jun 29, 2024",
+    team: "T024F9JB8",
+    bot_profile: {
+      id: "B048MD7CKAQ",
+      app_id: "A048XJ5QD7T",
+      name: "Code Review Report",
+      icons: {},
+      deleted: false,
+      updated: 1666963920,
+      team_id: "T024F9JB8",
+    },
+    blocks: [],
+  },
+  response_metadata: {
+    scopes: ["chat:write", "im:write"],
+    acceptedScopes: ["chat:write"],
+  },
+} satisfies ChatPostMessageResponse;
 
 describe("SlackPublisher", () => {
   const publish = vi.fn();
@@ -68,16 +102,14 @@ describe("SlackPublisher", () => {
   describe('if the "SLACK_TOKEN" config is missing', () => {
     it.effect("the live layer returns a PublishError when constructed", () =>
       Effect.gen(function* () {
-        yield* SlackPublisher.registerPublisher.pipe(
+        const error = yield* SlackPublisher.registerPublisher.pipe(
           Effect.provide(SlackPublisher.Live),
-          Effect.catchTags({
-            PublishError: (e) =>
-              Effect.sync(() => {
-                expect(e).toBeInstanceOf(PublishError);
-                expect(e.message).toBe("Missing SLACK_TOKEN");
-              }),
-          }),
+          Effect.either,
+          Effect.flatMap(Either.flip),
         );
+
+        expect(error).toBeInstanceOf(PublishError);
+        expect(error.message).toEqual("Missing SLACK_TOKEN");
       }).pipe(
         withFormatter("text"),
         Effect.provide(Consola.Live),
@@ -94,19 +126,17 @@ describe("SlackPublisher", () => {
     );
   });
 
-  describe('if the "NOTION_DATABASE_ID" config is missing', () => {
+  describe('if the "SLACK_CHANNEL_ID" config is missing', () => {
     it.effect("the live layer returns a PublishError when constructed", () =>
       Effect.gen(function* () {
-        yield* SlackPublisher.registerPublisher.pipe(
+        const error = yield* SlackPublisher.registerPublisher.pipe(
           Effect.provide(SlackPublisher.Live),
-          Effect.catchTags({
-            PublishError: (e) =>
-              Effect.sync(() => {
-                expect(e).toBeInstanceOf(PublishError);
-                expect(e.message).toBe("Missing SLACK_CHANNEL_ID");
-              }),
-          }),
+          Effect.either,
+          Effect.flatMap(Either.flip),
         );
+
+        expect(error).toBeInstanceOf(PublishError);
+        expect(error.message).toEqual("Missing SLACK_CHANNEL_ID");
       }).pipe(
         withFormatter("text"),
         Effect.provide(Consola.Live),
@@ -157,11 +187,74 @@ describe("SlackPublisher", () => {
       );
 
       describe("when the API returns a success response", () => {
-        it.effect("logs a success message", () => Effect.gen(function* () {}));
+        it.effect("returns the response data", () =>
+          Effect.gen(function* () {
+            const slackPublisher = yield* SlackPublisher;
+
+            mocks.chat.postMessage.mockResolvedValue(
+              slackPostMessageSuccessData,
+            );
+
+            const fiber = yield* slackPublisher
+              .publish(summaryFixture)
+              .pipe(Effect.fork);
+
+            yield* TestClock.adjust("2 seconds");
+
+            const result = yield* Fiber.join(fiber);
+
+            expect(result).toEqual(slackPostMessageSuccessData);
+          }).pipe(
+            withFormatter("slack"),
+            Effect.provide(SlackPublisher.Live),
+            Effect.provide(Consola.Live),
+            Effect.provide(
+              Layer.setConfigProvider(
+                ConfigProvider.fromMap(
+                  new Map([
+                    ["SLACK_TOKEN", "test_token"],
+                    ["SLACK_CHANNEL_ID", "test_channel_id"],
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        );
       });
 
       describe("when the API returns an error response", () => {
-        it.effect("logs a success message", () => Effect.gen(function* () {}));
+        it.effect("returns a PublishError", () =>
+          Effect.gen(function* () {
+            const slackPublisher = yield* SlackPublisher;
+
+            mocks.chat.postMessage.mockRejectedValue(new Error("test error"));
+
+            const fiber = yield* slackPublisher
+              .publish(summaryFixture)
+              .pipe(Effect.either, Effect.flatMap(Either.flip), Effect.fork);
+
+            yield* TestClock.adjust("2 seconds");
+
+            const error = yield* Fiber.join(fiber);
+
+            expect(error).toBeInstanceOf(PublishError);
+            expect(error.message).toEqual("test error");
+          }).pipe(
+            withFormatter("slack"),
+            Effect.provide(SlackPublisher.Live),
+            Effect.provide(Consola.Live),
+            Effect.provide(
+              Layer.setConfigProvider(
+                ConfigProvider.fromMap(
+                  new Map([
+                    ["SLACK_TOKEN", "test_token"],
+                    ["SLACK_CHANNEL_ID", "test_channel_id"],
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        );
       });
     });
   });

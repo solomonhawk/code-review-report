@@ -9,10 +9,10 @@ import { ContributorsList } from "./contributors-list";
 import { NodeSdkLive } from "./node-sdk";
 
 export const MainLive = Layer.mergeAll(
+  Api.Live,
   ContributorsList.Live,
   DefaultAggregator.Live,
   DefaultPublisher.Live,
-  Api.Live,
   NodeSdkLive,
   NodeContext.layer,
   NodeFileSystem.layer,

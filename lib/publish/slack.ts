@@ -1,16 +1,17 @@
-import { WebClient } from "@slack/web-api";
+import { ChatPostMessageResponse, WebClient } from "@slack/web-api";
 import * as Config from "effect/Config";
+import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Queue from "effect/Queue";
 import * as Predicate from "effect/Predicate";
+import * as Queue from "effect/Queue";
 
-import { Formatter } from "~/layers/formatter";
-import { asyncWithRetryAndTimeout } from "~/lib/helpers";
-import { PublisherImpl, PublishError } from "./types";
-import { Publisher } from "~/layers/publisher";
-import { ReportSummary } from "../types";
 import { Consola } from "~/layers/consola";
+import { Formatter } from "~/layers/formatter";
+import { Publisher } from "~/layers/publisher";
+import { asyncWithRetryAndTimeout } from "~/lib/helpers";
+import { ReportSummary } from "../types";
+import { PublisherImpl, PublishError } from "./types";
 
 export class SlackPublisher extends Effect.Tag("SlackPublisher")<
   SlackPublisher,
@@ -37,7 +38,7 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
    */
   static Test = Layer.succeed(SlackPublisher, {
     publish: (report) =>
-      Effect.logInfo(`slack publish, ${JSON.stringify(report, null, 2)}`),
+      Console.log(`slack publish, ${JSON.stringify(report, null, 2)}`),
   });
 
   /**
@@ -65,8 +66,10 @@ export class SlackPublisher extends Effect.Tag("SlackPublisher")<
         publish: (summary) =>
           Effect.gen(function* () {
             yield* consola.start("Publishing to Slack");
-            yield* publishReport(client, channelId, summary);
+            const response = yield* publishReport(client, channelId, summary);
             yield* consola.success("Published to Slack");
+
+            return response;
           }).pipe(
             Effect.tapError(() => consola.fail("Failed to publish to Slack")),
           ),
@@ -79,7 +82,7 @@ const publishReport = (
   client: WebClient,
   channelId: string,
   summary: ReportSummary,
-) =>
+): Effect.Effect<ChatPostMessageResponse, PublishError, Formatter> =>
   Effect.gen(function* () {
     const formatter = yield* Formatter;
     const blocks = yield* formatter.formatBlocks(summary);

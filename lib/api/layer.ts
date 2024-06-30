@@ -1,10 +1,11 @@
 import * as Http from "@effect/platform/HttpClient";
 import { Schema } from "@effect/schema";
-import { Duration, pipe } from "effect";
+import { pipe } from "effect";
 import * as Array from "effect/Array";
 import * as Chunk from "effect/Chunk";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -14,7 +15,8 @@ import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import parseLinkHeader from "parse-link-header";
 
-import { stripPrefix } from "~/lib/helpers/string";
+import { stripPrefix } from "~/lib/helpers";
+import { contributorStatsFixture } from "~/test/fixtures";
 import {
   ApiError,
   ApiResponseErrorSchema,
@@ -24,7 +26,6 @@ import {
   type ContributorStats,
   type SearchResults,
 } from "./types";
-import { contributorStatsFixture } from "~/test/fixtures";
 
 type HttpClient = Http.client.Client<
   Http.response.ClientResponse,
@@ -68,7 +69,7 @@ export class Api extends Effect.Tag("Api")<
       return {
         getContributorStats: (contributorUsernames, dateRange) => {
           return Effect.gen(function* () {
-            yield* Effect.logInfo(
+            yield* Effect.logDebug(
               `Getting contributor stats for ${contributorUsernames.join(", ")} between ${dateRange[0]} and ${dateRange[1]}...`,
             );
 
@@ -85,7 +86,7 @@ export class Api extends Effect.Tag("Api")<
                     { concurrency: "unbounded" },
                   );
 
-                  yield* Effect.logInfo(`Fetched stats for ${username}`);
+                  yield* Effect.logDebug(`Fetched stats for ${username}`);
 
                   return {
                     username,
@@ -98,7 +99,7 @@ export class Api extends Effect.Tag("Api")<
               { concurrency: "unbounded" },
             );
 
-            yield* Effect.logInfo(
+            yield* Effect.logDebug(
               "Successfully fetched contributor stats for all users",
             );
 
@@ -235,7 +236,7 @@ const queryPage = (
     httpClient,
 
     Effect.timeoutFail({
-      duration: "10 seconds",
+      duration: Duration.seconds(10),
       onTimeout: () =>
         new TimeoutError({
           message: "Timed out fetching data",
@@ -243,7 +244,7 @@ const queryPage = (
     }),
 
     Effect.tap(() =>
-      Effect.logInfo(
+      Effect.logDebug(
         `Querying ${label}, page: ${new URL(url, BASE_API_URL).searchParams.get("page")}`,
       ),
     ),
@@ -267,13 +268,6 @@ const queryPage = (
         }
 
         return yield* Effect.succeed(res).pipe(
-          // Effect.tapError(() =>
-          //   Http.response.json(Effect.succeed(res)).pipe(Effect.logDebug),
-          // ),
-          // Effect.tapError(() => {
-          //   console.log("res", res);
-          //   return Effect.void;
-          // }),
           Http.response.schemaBodyJsonScoped(ApiResponseSchema),
           Effect.flatMap((data) => {
             return Effect.gen(function* () {
@@ -297,9 +291,9 @@ const queryPage = (
     }),
 
     Effect.retry(
-      pipe(
-        Schedule.compose(Schedule.exponential(1000), Schedule.recurs(5)),
-        Schedule.jittered,
+      Schedule.compose(
+        Schedule.jittered(Schedule.exponential(1000)),
+        Schedule.recurs(5),
       ),
     ),
 
@@ -349,8 +343,9 @@ function waitForRateLimitReset(response: Http.response.ClientResponse) {
   const reset = new Date(Number(response.headers["x-ratelimit-reset"]) * 1000);
 
   const waitTimeMs = reset.getTime() - Date.now();
+  const message = `Rate limit exceeded. Waiting ${waitTimeMs / 1000} seconds to try again...`;
 
-  return Effect.logInfo(
-    `Rate limit exceeded. Waiting ${waitTimeMs / 1000} seconds to try again...`,
-  ).pipe(Effect.zipRight(Effect.sleep(waitTimeMs + 1000)));
+  return Effect.logDebug(message).pipe(
+    Effect.zipRight(Effect.sleep(waitTimeMs + 1000)),
+  );
 }

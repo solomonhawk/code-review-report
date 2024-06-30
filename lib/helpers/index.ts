@@ -1,3 +1,3 @@
-export * from "./text";
+export * from "./string";
 export * from "./async";
 export * from "./schema/array";

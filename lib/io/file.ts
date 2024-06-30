@@ -4,6 +4,7 @@ import * as Predicate from "effect/Predicate";
 import path from "node:path";
 import { FileSystem } from "@effect/platform";
 import { IOError, IOImpl } from "./types";
+import { Console } from "effect";
 
 export class FileIO extends Effect.Tag("IO")<FileIO, IOImpl>() {
   static makeLive = (output: string) =>
@@ -17,6 +18,7 @@ export class FileIO extends Effect.Tag("IO")<FileIO, IOImpl>() {
           );
           yield* fs.makeDirectory(pathDirectory, { recursive: true });
           yield* fs.writeFile(output, Buffer.from(formattedReport));
+          yield* Console.log(`Wrote ${pathDirectory}/${output}`);
         }).pipe(
           Effect.catchAll(
             (e) =>

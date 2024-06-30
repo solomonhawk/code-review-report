@@ -7,3 +7,11 @@ export function stripPrefix(
 ): string | undefined {
   return str && str.startsWith(prefix) ? str.slice(prefix.length) : str;
 }
+
+export function trimMultiline(str: string) {
+  return str
+    .trim()
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n");
+}

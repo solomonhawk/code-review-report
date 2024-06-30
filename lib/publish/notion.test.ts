@@ -2,6 +2,8 @@ import { it } from "@effect/vitest";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Either from "effect/Either";
+
 import { Consola } from "~/layers/consola";
 import { Publisher } from "~/layers/publisher";
 import { withFormatter } from "~/lib/format";
@@ -101,16 +103,14 @@ describe("NotionPublisher", () => {
   describe('if the "NOTION_DATABASE_ID" config is missing', () => {
     it.effect("the live layer returns a PublishError when constructed", () =>
       Effect.gen(function* () {
-        yield* NotionPublisher.registerPublisher.pipe(
+        const error = yield* NotionPublisher.registerPublisher.pipe(
           Effect.provide(NotionPublisher.Live),
-          Effect.catchTags({
-            PublishError: (e) =>
-              Effect.sync(() => {
-                expect(e).toBeInstanceOf(PublishError);
-                expect(e.message).toBe("Missing NOTION_DATABASE_ID");
-              }),
-          }),
+          Effect.either,
+          Effect.flatMap(Either.flip),
         );
+
+        expect(error).toBeInstanceOf(PublishError);
+        expect(error.message).toEqual("Missing NOTION_DATABASE_ID");
       }).pipe(
         withFormatter("text"),
         Effect.provide(DefaultPublisher.Live),

@@ -1,3 +1,4 @@
+import { pipe } from "effect";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
@@ -7,21 +8,25 @@ export function asyncWithRetryAndTimeout<T, E>(
   {
     onError,
     onTimeout,
+    retries,
+    timeoutSeconds,
   }: {
     onError: (e: unknown) => E;
     onTimeout: () => E;
+    retries?: number;
+    timeoutSeconds?: number;
   },
 ) {
-  return Effect.tryPromise({
-    try: fn,
-    catch: onError,
-  }).pipe(
+  return pipe(
+    Effect.tryPromise({ try: fn, catch: onError }),
     Effect.retry({
-      times: 5,
-      schedule: Schedule.jittered(Schedule.exponential("50 millis")),
+      schedule: Schedule.compose(
+        Schedule.jittered(Schedule.exponential("50 millis")),
+        Schedule.recurs(retries ?? 5),
+      ),
     }),
     Effect.timeoutFail({
-      duration: Duration.seconds(10),
+      duration: Duration.seconds(timeoutSeconds ?? 10),
       onTimeout,
     }),
   );

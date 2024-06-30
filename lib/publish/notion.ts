@@ -1,16 +1,17 @@
 import { Client } from "@notionhq/client";
 import type { CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import * as Config from "effect/Config";
+import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Predicate from "effect/Predicate";
 import * as Queue from "effect/Queue";
 
+import { Consola } from "~/layers/consola";
 import { Publisher } from "~/layers/publisher";
 import { asyncWithRetryAndTimeout } from "~/lib/helpers";
 import { ReportSummary } from "~/lib/types";
 import { PublishError, PublisherImpl } from "./types";
-import { Consola } from "~/layers/consola";
 
 export class NotionPublisher extends Effect.Tag("NotionPublisher")<
   NotionPublisher,
@@ -37,7 +38,7 @@ export class NotionPublisher extends Effect.Tag("NotionPublisher")<
    */
   static Test = Layer.succeed(NotionPublisher, {
     publish: (report) =>
-      Effect.logInfo(`notion publish, ${JSON.stringify(report, null, 2)}`),
+      Console.log(`notion publish, ${JSON.stringify(report, null, 2)}`),
   });
 
   /**
@@ -87,7 +88,7 @@ const publishReport = (
     const properties = buildDatabaseProperties(title, summary);
 
     if (existingPageId) {
-      yield* Effect.logInfo(
+      yield* Effect.logDebug(
         `Updating existing notion page with ID ${existingPageId}`,
       );
 
@@ -111,7 +112,7 @@ const publishReport = (
         },
       );
     } else {
-      yield* Effect.logInfo(
+      yield* Effect.logDebug(
         `Creating new notion page in database with ID ${databaseId}`,
       );
 
