@@ -1,7 +1,14 @@
-import { ConsolaInstance } from "consola";
+import { ConsolaInstance, createConsola, LogLevels } from "consola";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import { makeConsola } from "~/lib/format";
+
+export const makeConsola = () =>
+  createConsola({
+    level: LogLevels["verbose"],
+    formatOptions: {
+      date: false,
+    },
+  });
 
 export type ConsolaImpl = {
   instance: ConsolaInstance;

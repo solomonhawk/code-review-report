@@ -1,20 +1,11 @@
 import * as Effect from "effect/Effect";
 import * as Match from "effect/Match";
+import { Formatter } from "~/layers/formatter";
 import { Format } from "~/lib/types";
 import { JsonFormatter } from "./json";
 import { MarkdownFormatter } from "./markdown";
 import { SlackFormatter } from "./slack";
 import { TextFormatter } from "./text";
-import { createConsola, LogLevels } from "consola";
-import { Formatter } from "~/layers/formatter";
-
-export const makeConsola = () =>
-  createConsola({
-    level: LogLevels["verbose"],
-    formatOptions: {
-      date: false,
-    },
-  });
 
 export const withFormatter =
   (format: Format) =>
