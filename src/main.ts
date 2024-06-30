@@ -2,17 +2,15 @@ import { CliConfig } from "@effect/cli";
 import * as Command from "@effect/cli/Command";
 import * as HelpDoc from "@effect/cli/HelpDoc";
 import { pipe } from "effect";
-import * as Cause from "effect/Cause";
 import * as Console from "effect/Console";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
-import * as Predicate from "effect/Predicate";
-
 import { generate } from "~/cli/subcommands/generate/command";
 import { publish } from "~/cli/subcommands/publish/command";
+import * as CustomLogger from "~/layers/logger";
+import { Requirements } from "~/lib/types";
 import pkg from "../package.json";
 import { Consola } from "./layers/consola";
-import { Requirements } from "~/lib/types";
 
 class SubcommandRequiredError extends Data.TaggedError(
   "SubcommandRequiredError",
@@ -45,10 +43,10 @@ export const main = (argv: string[]) =>
     // duplicate output as a result)
     Effect.flatMap(Consola, (consola) =>
       Effect.suspend(() => {
-        consola.instance.wrapAll();
+        consola.instance.wrapConsole();
 
         return cli(argv).pipe(
-          Effect.andThen(() => consola.instance.restoreAll()),
+          Effect.andThen(() => consola.instance.restoreConsole()),
           Effect.withSpan("cli"),
         );
       }),
@@ -72,24 +70,8 @@ export const main = (argv: string[]) =>
               ),
             ),
           ),
+          Effect.provide(CustomLogger.Live),
         ),
-    }),
-
-    Effect.catchAllDefect((defect) => {
-      if (Predicate.isError(defect)) {
-        return Effect.logFatal(defect.message);
-      }
-
-      if (Cause.isRuntimeException(defect)) {
-        return Effect.logFatal(
-          `RuntimeException defect caught: ${defect.message}`,
-        );
-      }
-
-      return Effect.all([
-        Effect.logFatal("Unknown defect caught."),
-        Effect.logFatal(defect),
-      ]);
     }),
 
     Effect.awaitAllChildren,
