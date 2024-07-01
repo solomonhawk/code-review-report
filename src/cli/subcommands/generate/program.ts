@@ -12,24 +12,14 @@ import { type GenerateOpts } from "./options";
 
 export const program = (opts: GenerateOpts) =>
   Effect.gen(function* () {
-    const io = yield* IO;
-    const api = yield* Api;
-    const formatter = yield* Formatter;
-    const aggregator = yield* Aggregator;
     const { usernames } = yield* ContributorsList;
     const dr = dateRange(opts.days, opts.offset);
 
-    // fetch data
-    const stats = yield* api.getContributorStats(usernames, dr);
+    const stats = yield* Api.getContributorStats(usernames, dr);
+    const summary = yield* Aggregator.aggregate(stats, dr);
+    const result = yield* Formatter.formatString(summary);
 
-    // aggregate summary
-    const summary = yield* aggregator.aggregate(stats, dr);
-
-    // format
-    const result = yield* formatter.formatString(summary);
-
-    // output
-    yield* io.write(result);
+    yield* IO.write(result);
   }).pipe(
     Effect.tapError((e) => IO.writeError(e)),
     Effect.catchAllDefect((defect) => {

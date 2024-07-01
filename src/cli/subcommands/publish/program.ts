@@ -14,20 +14,13 @@ export const program = (opts: PublishOpts) =>
   Effect.gen(function* () {
     yield* Effect.logDebug(opts);
 
-    const api = yield* Api;
-    const publisher = yield* Publisher;
-    const aggregator = yield* Aggregator;
     const { usernames } = yield* ContributorsList;
     const dr = dateRange(opts.days, opts.offset);
 
-    // fetch data
-    const stats = yield* api.getContributorStats(usernames, dr);
+    const stats = yield* Api.getContributorStats(usernames, dr);
+    const summary = yield* Aggregator.aggregate(stats, dr);
 
-    // aggregate summary
-    const summary = yield* aggregator.aggregate(stats, dr);
-
-    // output
-    yield* publisher.publishAll(summary);
+    yield* Publisher.publishAll(summary);
   }).pipe(
     Effect.tapError((e) => IO.writeError(e)),
     Effect.catchAllDefect((defect) => {
